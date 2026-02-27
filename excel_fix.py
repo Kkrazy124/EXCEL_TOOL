@@ -66,7 +66,27 @@ with tab1:
 
     if df1 is not None and df2 is not None:
         st.divider()
-        st.subheader("🔗 2. 匹配与提取设置")
+        st.subheader("🧹 2. 数据清洗 (解决合并单元格空白)")
+        c_clean1, c_clean2 = st.columns(2)
+        with c_clean1:
+            if st.checkbox("✅ 表1：自动向下填充空白数据", value=True, key='ffill1_tab1'):
+                df1 = df1.ffill()
+        with c_clean2:
+            if st.checkbox("✅ 表2：自动向下填充空白数据", value=True, key='ffill2_tab1'):
+                df2 = df2.ffill()
+
+        st.divider()
+        st.subheader("👀 3. 数据预览")
+        pv_t1_1, pv_t1_2 = st.columns(2)
+        with pv_t1_1:
+            st.write("👉 **表1 预览 (前5行)**")
+            st.dataframe(df1.head(5), use_container_width=True)
+        with pv_t1_2:
+            st.write("👉 **表2 预览 (前5行)**")
+            st.dataframe(df2.head(5), use_container_width=True)
+
+        st.divider()
+        st.subheader("🔗 4. 匹配与提取设置")
         condition_count = st.number_input("匹配条件数量", min_value=1, max_value=10, value=4, key='cc1')
         left_on_cols, right_on_cols = [], []
         
@@ -112,6 +132,12 @@ with tab2:
 
         if df_single is not None:
             st.divider()
+            st.subheader("👀 2. 数据预览")
+            st.write("👉 **原始数据预览 (前5行)**")
+            st.dataframe(df_single.head(5), use_container_width=True)
+
+            st.divider()
+            st.subheader("🎯 3. 设置填补规则")
             c1, c2 = st.columns(2)
             with c1: match_cols_single = st.multiselect("1️⃣ 选择参照列 (用于查字典)", df_single.columns.tolist(), key='match_single')
             with c2: target_col_single = st.selectbox("2️⃣ 选择残缺列 (需要填补的目标)", [""] + df_single.columns.tolist(), key='target_single')
@@ -172,8 +198,21 @@ with tab3:
                 df_new = load_data(file_new, header_row=h_new)
 
     if df_old is not None and df_new is not None:
+        
+        # --- 这里是为您全新加上的预览功能 ---
         st.divider()
-        st.subheader("🔗 2. 设置比对规则 (手动匹配列名)")
+        st.subheader("👀 2. 数据预览")
+        pv_t3_1, pv_t3_2 = st.columns(2)
+        with pv_t3_1:
+            st.write("👉 **旧版本 预览 (前5行)**")
+            st.dataframe(df_old.head(5), use_container_width=True)
+        with pv_t3_2:
+            st.write("👉 **新版本 预览 (前5行)**")
+            st.dataframe(df_new.head(5), use_container_width=True)
+        # ------------------------------------
+
+        st.divider()
+        st.subheader("🔗 3. 设置比对规则 (手动匹配列名)")
         st.info("💡 1. 唯一标识：相当于数据的“身份证”（如 订单号+款号），用来认出不管怎么乱序的同一行数据。\n\n💡 2. 待比对列：你需要检查是否被偷偷修改了内容的列（如 数量、价格、颜色）。")
 
         # --- 唯一标识列设置 ---
