@@ -4,7 +4,7 @@ import numpy as np
 import io
 
 st.set_page_config(page_title="Excel 数据智能处理工具", layout="wide")
-st.title("📊 Excel 数据智能处理工具 (全能版)")
+st.title("📊 Excel 数据智能处理工具 (Krazy)")
 
 @st.cache_data
 def load_data(file, sheet_name=None, header_row=0):
@@ -310,3 +310,4 @@ with tab3:
 
             except Exception as e:
                 st.error(f"比对出错，请检查是否有两边数据类型不一致等问题。错误详情: {e}")
+
