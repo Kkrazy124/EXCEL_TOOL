@@ -117,7 +117,7 @@ with tab1:
                 except Exception as e:
                     st.error(f"匹配出错: {e}")
 
-# ================= 【功能二：单表内自动填补】 =================
+# ================= 【功能二：单表内自动填补 (强力清洗与排错版)】 =================
 with tab2:
     st.subheader("📂 1. 上传包含残缺数据的表格")
     file_single = st.file_uploader("📤 上传表格", type=['xlsx', 'xls', 'csv'], key='f_single')
@@ -148,20 +148,43 @@ with tab2:
                 else:
                     try:
                         df_res = df_single.copy()
+                        
+                        # ================= 【核心修复：强力数据清洗】 =================
+                        # 1. 强制将所有“匹配列”转为纯文本，并切掉开头和结尾的所有隐形空格！
+                        for col in match_cols_single:
+                            df_res[col] = df_res[col].astype(str).str.strip()
+                        
+                        # 2. 将目标列中所有乱七八糟的“空”统一变成真正的缺失值 NaN
+                        # 包括：纯空格、文本型的'nan'、'None'等
                         df_res[target_col_single] = df_res[target_col_single].replace(r'^\s*$', np.nan, regex=True)
+                        df_res[target_col_single] = df_res[target_col_single].replace(['nan', 'None', 'NaN', 'NaT'], np.nan)
+                        # ==============================================================
+
+                        # 提取有完整数据的行作为“词典”
                         valid_data = df_res.dropna(subset=[target_col_single])
-                        mapping_df = valid_data[match_cols_single + [target_col_single]].drop_duplicates(subset=match_cols_single)
+                        mapping_df = valid_data[match_cols_single + [target_col_single]].drop_duplicates(subset=match_cols_single, keep='first')
                         mapping_df['__key__'] = mapping_df[match_cols_single].apply(tuple, axis=1)
                         mapping_dict = mapping_df.set_index('__key__')[target_col_single].to_dict()
                         
+                        # ================= 【新增排错模块：展示词典】 =================
+                        with st.expander("🛠️ 排错专用：点击查看程序提取到的【参照字典】"):
+                            st.info(f"程序一共从表中找出了 **{len(mapping_dict)}** 条唯一的填补规则。请在下方表格找一下，有没有您没填补成功的那一行？如果没有，说明原表里那一行的数据本身也有问题（比如也是空的）。")
+                            st.dataframe(mapping_df[match_cols_single + [target_col_single]])
+                        # ==============================================================
+
                         def fill_missing(row):
                             val = row[target_col_single]
-                            if pd.isna(val): return mapping_dict.get(tuple(row[match_cols_single]), val)
+                            if pd.isna(val): 
+                                # 查找字典时，也要确保拿去查的钥匙被清洗过空格
+                                clean_key = tuple([str(x).strip() for x in row[match_cols_single]])
+                                return mapping_dict.get(clean_key, val)
                             return val
                         
+                        # 执行填补
                         df_res[target_col_single] = df_res.apply(fill_missing, axis=1)
+                        
                         st.success("✅ 填补完成！")
-                        st.dataframe(df_res.head(10), use_container_width=True)
+                        st.dataframe(df_res.head(15), use_container_width=True)
                         
                         output_single = io.BytesIO()
                         with pd.ExcelWriter(output_single, engine='openpyxl') as writer:
@@ -169,7 +192,7 @@ with tab2:
                         output_single.seek(0)
                         st.download_button("📥 点击下载填补完毕的新文件", data=output_single, file_name="表内自动填补完成.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                     except Exception as e:
-                        st.error(f"出错: {e}")
+                        st.error(f"处理出错: {e}")
 
 # ================= 【功能三：新旧版本智能比对】 =================
 with tab3:
@@ -310,4 +333,5 @@ with tab3:
 
             except Exception as e:
                 st.error(f"比对出错，请检查是否有两边数据类型不一致等问题。错误详情: {e}")
+
 
